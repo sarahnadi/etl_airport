@@ -1,108 +1,57 @@
-name: Backend Push Docker Image CI
+name: Build and Push Docker Image
+
 on:
-
-  #trigger event
-
-  #when push to main branch or dev
-
+  # Trigger on push events to the main branch
   push:
     branches: [ "main" ,"dev"]
-  # when have an opened PR on dev branch
-
+  # Trigger on pull request events
   pull_request:
-    branches: [ "dev" ]
-    types: [opened ]
+    branches: ["dev"]
+    types: [ opened ]
 
-
-#workflow jobs
 jobs:
-  Build_and_push:
-    runs-on: ubuntu-latest
-    #each step to do
+  build-and-push:
+    runs-on: ubuntu-latest  # Workflow runs on Ubuntu virtual machines
 
     steps:
-    # commit_id with 8 digit as the tag variable for docker image
+          #checkout code
 
-    - name: Add SHORT_SHA env property with commit short sha
+      - name: Checkout
+        uses: actions/checkout@v4
+      #for multiple platforms
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3    
 
-      id: commitid
-
-      run: echo "SHORT_SHA=echo ${GITHUB_SHA} | cut -c1-8" >> $GITHUB_OUTPUT
-
-
-    #checkout code
-
-    - name: Checkout
-
-      uses: actions/checkout@v4
-
-    
-
-    #for multiple platforms
-
-    - name: Set up Docker Buildx
-
-      uses: docker/setup-buildx-action@v3    
-
-
-    # login to own dockerhub 
-
-    - name: Login to Docker Hub
-
-      uses: docker/login-action@v3
-
-      with:
-
+          # login to own dockerhub 
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
         # GitHub Repo->Settings->Secrets then add username and password
-
         # it should be the same with name here 
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-        username: ${{ secrets.DOCKER_USERNAME }}
+      #prod image
+      - if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master'}}
+        name: master branch image
+        working-directory: .
+        run: | 
+          docker build . --file Dockerfile -t ${{ secrets.DOCKER_USERNAME }}/git_csv_turso_init:prod_${{ github.sha }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/git_csv_turso_init:prod_${{ github.sha }}  
 
-        password: ${{ secrets.DOCKER_PASSWORD }}
-
-
-    # Prod image
-
-    - if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main'}} 
-
-      name:  main branch image
-
-      working-directory: .
-
-      run: | 
-
-        docker build . --file Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/git_csv_turso_init:prod_${{ steps.commitid.outputs.SHORT_SHA }} 
-
-        docker push ${{ secrets.DOCKER_USERNAME }}/git_csv_turso_init:prod_${{ steps.commitid.outputs.SHORT_SHA }} 
-
-    
-
-    # Edge image
-
-    - if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev'}} 
-
-      name:  dev branch image
-
-      working-directory: .
-
-      run: | 
-
-        docker build . --file Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/git_csv_turso_init:edge
-
-        docker push ${{ secrets.DOCKER_USERNAME }}/git_csv_turso_init:edge
-
-
+      # Edge image
+      - if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev'}}
+        name: edge - dev branch image
+        working-directory: .
+        run: | 
+          docker build . --file Dockerfile -t ${{ secrets.DOCKER_USERNAME }}/git_csv_turso_init:edge
+          docker push ${{ secrets.DOCKER_USERNAME }}/git_csv_turso_init:edge
+ 
       # PR image
-
-    - if: ${{ github.event_name == 'pull_request' }} 
-
-      name: Pull Request image
-
-      working-directory: .
-
-      run: | 
-
-        docker build . --file Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/git_csv_turso_init:pr_${{ steps.commitid.outputs.SHORT_SHA }} 
-
-        docker push ${{ secrets.DOCKER_USERNAME }}/git_csv_turso_init:pr_${{ steps.commitid.outputs.SHORT_SHA }} 
+      - if: ${{ github.event_name == 'pull_request' }}
+        name: pull request image
+        working-directory: .
+        run: |
+          docker build . --file Dockerfile -t ${{ secrets.DOCKER_USERNAME }}/git_csv_turso_init:${{ github.sha }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/git_csv_turso_init:${{ github.sha }}
+    
