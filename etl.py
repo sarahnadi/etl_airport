@@ -7,6 +7,7 @@ from sqlalchemy import create_engine
 import re
 from dotenv import load_dotenv
 from dagster import asset
+from datetime import datetime
 
 
 
@@ -81,6 +82,10 @@ def load_csv_files_in_dataframe():
                 # add the call of clean dataframe here.
                 # Set the DataFrame name based on the filename (without extension)
                 df.name = os.path.splitext(filename)[0]
+
+                # Add a new column 'timestamp' with current timestamp
+                df['timestamp'] = datetime.now()
+                
                 dataframes.append(df)
                 print(f"Loaded the file {filename} into a DataFrame successfully")
                 # print(df.head())

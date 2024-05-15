@@ -51,33 +51,39 @@ def download_csv_files(base_url, local_dir):
 2. Load CSV into DataFrames (Transform):
 """
 
+import os
+import pandas as pd
+from datetime import datetime
 
 def load_csv_files_in_dataframe(local_dir):
     """
-        Args:
-            local_dir (str): the local directory where csv folders are stored
-        Returns:
-            A list of DataFrames.
+    Args:
+        local_dir (str): the local directory where csv folders are stored
+    Returns:
+        A list of DataFrames.
     """
     local_dir = os.getenv("LOCAL_DIR")
     dataframes = []
 
     for filename in os.listdir(local_dir):
         if filename.endswith(".csv"):
-            file_path = os.path.join(local_dir,filename)
+            file_path = os.path.join(local_dir, filename)
 
             try:
                 df = pd.read_csv(file_path)
-                # add the call of clean dataframe here.
                 # Set the DataFrame name based on the filename (without extension)
                 df.name = os.path.splitext(filename)[0]
+                
+                # Add a new column 'timestamp' with current timestamp
+                df['timestamp'] = datetime.now()
+                
                 dataframes.append(df)
                 print(f"Loaded the file {filename} into a DataFrame successfully")
-                # print(df.head())
             except Exception as e:
                 print(f"Failed to Load {filename} into a DataFrame: {e}")
 
     return dataframes
+
 
 
 """
@@ -153,6 +159,7 @@ if __name__=="__main__":
     create_tables_and_load_data(dataframes, engine)
 
 
+# python etl-raw.py
 
 
 
