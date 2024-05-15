@@ -8,8 +8,11 @@ import re
 from dotenv import load_dotenv
 from dagster import asset
 from datetime import datetime
-
-
+from dagster import (
+    Definitions,
+    ScheduleDefinition,
+    define_asset_job,
+)
 
 
 load_dotenv()
@@ -20,7 +23,6 @@ load_dotenv()
 # base_url = os.getenv("BASE_URL")
 # local_dir = os.getenv("LOCAL_DIR")
 # conn_string = os.getenv("DB_CONNECTION_STRING")
-
 
 
 @asset
@@ -94,9 +96,6 @@ def load_csv_files_in_dataframe():
 
     return dataframes
 
-# usage
-# local_dir = "csv_files"
-# load_csv_files_in_dataframe(local_dir)
 
 """
 3. Create Tables and Load Data (Load):
@@ -174,6 +173,24 @@ def create_tables_and_load_data():
 # dataframes = load_csv_files_in_dataframe(local_dir)
 # engine = connect_db()
 # create_tables_and_load_data(dataframes, engine)
+
+defs = Definitions(
+    assets=[download_csv_files, load_csv_files_in_dataframe, create_tables_and_load_data],
+    jobs=[
+        define_asset_job(
+            name= "etl_job",
+            selection=[download_csv_files, load_csv_files_in_dataframe, create_tables_and_load_data]
+        )
+    ],
+    schedules=[
+        ScheduleDefinition(
+            name="etl_schedule",
+            job_name="etl_job",
+            cron_schedule="@daily",
+        )
+    ]
+)
+
 
 if __name__=="__main__":
 
