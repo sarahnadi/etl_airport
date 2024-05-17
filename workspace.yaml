@@ -1,5 +1,5 @@
 load_from:
   # References the file copied into your Dockerfile
-  - python_file: /opt/dagster/app/etl.py
+  - python_file: /opt/dagster/app/etl-sensor.py
 
 

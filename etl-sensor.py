@@ -193,6 +193,7 @@ def get_last_commit_date(repo_owner, repo_name, since_date=None):
     else:
         return f"Failed to retrieve data. Status code: {response.status_code}"
 
+
 def is_recent_commit(last_commit_date):
     """
     Checks if the last commit date is within the last 24 hours.
@@ -208,8 +209,10 @@ etl_job = define_asset_job(
     name="etl_job",
     selection=[download_csv_files, load_csv_files_in_dataframe, create_tables_and_load_data]
 )
+
 @sensor(job=etl_job, minimum_interval_seconds=60)
 def check_for_new_commits(context):
+
     """
     This op checks the Github repository for the last commit date.
     """
@@ -223,7 +226,8 @@ def check_for_new_commits(context):
         yield RunRequest(run_key="new_commit")
     else:
         context.log.info("No recent commits found. Skipping ETL job.")
-        
+
+      
 defs = Definitions(
     assets=[download_csv_files, load_csv_files_in_dataframe, create_tables_and_load_data],
     jobs=[etl_job],
@@ -244,3 +248,4 @@ if __name__=="__main__":
     dataframes = load_csv_files_in_dataframe(local_dir)
     engine = connect_db()
     create_tables_and_load_data(dataframes)
+
