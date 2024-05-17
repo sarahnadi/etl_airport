@@ -7,12 +7,17 @@ from sqlalchemy import create_engine
 import re
 from dotenv import load_dotenv
 from dagster import asset
-from datetime import datetime
+from datetime import datetime, timedelta
 from dagster import (
     Definitions,
     ScheduleDefinition,
     define_asset_job,
+   
 )
+
+"""
+This code is for ETL with no sensor.
+"""
 
 
 load_dotenv()
@@ -51,7 +56,6 @@ def download_csv_files():
             print(f"{filename} downloaded.")
         except requests.exceptions.HTTPError as e:
             print(f"Failed to download {filename}: {e}")
-
 
 
 # usage
@@ -173,6 +177,35 @@ def create_tables_and_load_data():
 # dataframes = load_csv_files_in_dataframe(local_dir)
 # engine = connect_db()
 # create_tables_and_load_data(dataframes, engine)
+
+def get_last_commit_date(repo_owner, repo_name, since_date=None):
+    api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/commits"
+    params = {}
+    if since_date:
+        params['since'] = since_date
+
+    response = requests.get(api_url, params=params)
+    if response.status_code == 200:
+        commits = response.json()
+        if commits:
+            last_commit_date = commits[0]['commit']['committer']['date']
+            last_commit_date = datetime.fromisoformat(last_commit_date.replace('Z', '+00:00')) # Convert to datetime object
+            return last_commit_date
+        else:
+            return "No commits found in the repository"
+    else:
+        return f"Failed to retrieve data. Status code: {response.status_code}"
+
+
+# @op(config={"repo_owner": str, "repo_name": str})
+# def is_fresh_commit(context):
+#     last_commit_date = get_last_commit_date(context)
+
+#     if not last_commit_date:
+#         return False
+
+#     yesterday = datetime.now() - timedelta(days=1)
+#     return last_commit_date > yesterday
 
 defs = Definitions(
     assets=[download_csv_files, load_csv_files_in_dataframe, create_tables_and_load_data],
